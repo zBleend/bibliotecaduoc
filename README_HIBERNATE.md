@@ -60,28 +60,21 @@ Ya agregadas en `pom.xml`:
 
 Neon te mostrará una pantalla con la cadena de conexión:
 
+![asd](doc/Captura%20de%20pantalla%202026-04-13%20104434.png)
+
+![asd](doc/Captura%20de%20pantalla%202026-04-13%20104531.png)
+
+
 ```
 postgresql://username:password@ep-cool-silence-123456.us-east-2.aws.neon.tech/neondb?sslmode=require
 ```
 
 **Descompón la URL**:
 - **Endpoint**: `ep-cool-silence-123456.us-east-2.aws.neon.tech`
-- **Database**: `neondb` (puedes crear una nueva base de datos si prefieres)
-- **Username**: `username` (mostrado en la consola)
+- **Database**: `neondb` (puedes crear una nueva base de datos si prefieres, pero este es el nombre por defecto)
+- **Username**: `username` (nombre de usuario)
 - **Password**: Copia el password (¡guárdalo!, no se muestra de nuevo)
 
-### Paso 3: (Opcional) Crear Base de Datos Específica
-
-En la consola de Neon:
-
-1. Ve a **SQL Editor**
-2. Ejecuta:
-   ```sql
-   CREATE DATABASE bibliotecaduoc;
-   ```
-3. Usa `bibliotecaduoc` como nombre de base de datos en la configuración
-
----
 
 ## 3. Configuración del Proyecto
 
@@ -89,7 +82,6 @@ En la consola de Neon:
 
 Edita `src/main/resources/application.properties`:
 
-**Reemplaza** los valores entre `<>` con tus credenciales reales:
 
 ```properties
 # ===================================
@@ -108,12 +100,12 @@ spring.jpa.properties.hibernate.format_sql=true
 spring.jpa.properties.hibernate.dialect=org.hibernate.dialect.PostgreSQLDialect
 ```
 
-#### ⚠️ Explicación de `ddl-auto`
+#### Explicación de `ddl-auto`
 
 | Valor | Comportamiento |
 |-------|----------------|
-| `update` | **Recomendado desarrollo**: Actualiza schema sin borrar datos |
-| `create` | Borra y recrea tabla en cada inicio (⛔ pierde datos) |
+| `update` | Actualiza schema sin borrar datos |
+| `create` | Borra y recrea tabla en cada inicio (pierde datos) |
 | `create-drop` | Borra tabla al cerrar aplicación |
 | `validate` | Solo valida que schema coincida (producción) |
 | `none` | No hace nada automáticamente |
@@ -147,9 +139,7 @@ public class Libro {
 
 ---
 
-## 4. Migración del Repository
-
-### Opción A: JPA Repository (Recomendado 2026)
+## 4. Cambios al Repository
 
 **Elimina** la implementación manual y crea una **interface**:
 
@@ -179,7 +169,9 @@ public interface LibroRepository extends JpaRepository<Libro, Integer> {
 }
 ```
 
-**⚠️ IMPORTANTE**: Al hacer esto, necesitas actualizar `LibroService` para usar los métodos JPA:
+
+## 5. Cambios al Service
+Necesitas actualizar `LibroService` para usar los métodos JPA:
 
 ```java
 // Antes (con ArrayList)
@@ -189,13 +181,7 @@ libroRepository.obtenerLibros();
 libroRepository.findAll();
 ```
 
-### Opción B: Mantener Implementación Manual (No recomendado)
-
-Si prefieres mantener el código actual, deberás inyectar `EntityManager` manualmente. **No lo recomiendo** para este proyecto.
-
----
-
-## 5. Verificación
+## 6. Verificación
 
 ### Paso 1: Compilar
 
@@ -225,7 +211,7 @@ Hibernate: create table if not exists libros (
 )
 ```
 
-Si ves esto, **¡la tabla se creó correctamente!** ✅
+Si ves esto, **¡la tabla se creó correctamente!** 
 
 ### Paso 3: Verificar en Neon SQL Editor
 
@@ -253,79 +239,3 @@ Debería mostrar la tabla vacía pero existente.
    ```
 3. Verifica con **GET /api/v1/libros**
 
----
-
-## 6. Troubleshooting
-
-### Error: "Connection refused"
-
-**Causa**: No puede conectar a Neon.
-
-**Solución**:
-1. Verifica que la URL en `application.properties` tenga `?sslmode=require`
-2. Confirma que el endpoint es correcto (copia-pega desde Neon Console)
-3. Revisa firewall/VPN
-
-### Error: "Password authentication failed"
-
-**Causa**: Credenciales incorrectas.
-
-**Solución**:
-1. Regenera el password en Neon Console → Settings → Reset Password
-2. Actualiza `application.properties`
-
-### Error: "relation 'libros' does not exist"
-
-**Causa**: Hibernate no creó la tabla.
-
-**Solución**:
-1. Verifica `spring.jpa.hibernate.ddl-auto=update`
-2. Revisa que `@Entity` esté en la clase `Libro`
-3. Compila con `./mvnw clean compile`
-
-### Hibernate no muestra SQL en logs
-
-**Solución**:
-```properties
-spring.jpa.show-sql=true
-logging.level.org.hibernate.SQL=DEBUG
-logging.level.org.hibernate.type.descriptor.sql.BasicBinder=TRACE
-```
-
-### Tabla se crea pero datos no persisten
-
-**Causa**: Tal vez estás usando memoria en lugar de la BD.
-
-**Solución**:
-- Asegúrate que `LibroRepository` extienda `JpaRepository`
-- Verifica que el `@Autowired` o constructor injection esté correcto en `LibroService`
-
----
-
-## 📚 Recursos Adicionales
-
-- **Neon Docs**: https://neon.tech/docs/introduction
-- **Spring Data JPA**: https://spring.io/projects/spring-data-jpa
-- **Hibernate Guide**: https://hibernate.org/orm/documentation/6.4/
-
----
-
-## ✅ Checklist Final
-
-- [ ] Dependencias agregadas en `pom.xml`
-- [ ] Credenciales configuradas en `application.properties`
-- [ ] Entidad `Libro` con anotaciones JPA
-- [ ] `LibroRepository` migrado a JPA interface
-- [ ] `LibroService` actualizado
-- [ ] Aplicación inicia sin errores
-- [ ] Tabla `libros` creada en Neon
-- [ ] API probada con Swagger
-
----
-
-**¿Problemas?** Revisa los logs completos con:
-```bash
-./mvnw spring-boot:run > app.log 2>&1
-```
-
-Luego busca errores en `app.log`.
